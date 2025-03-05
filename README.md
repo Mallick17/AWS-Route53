@@ -3,13 +3,69 @@
 - DNS is a system that translates domain name like "example.com" into ip address like "192.68.1.1".
 - It is  a fundamental part of the internet, allowing users to access websites using human readable domain names instead of IP address.
 
+---
+
 ## How to read an URL
 ![image](https://github.com/user-attachments/assets/3c968f36-a3eb-40be-b6af-1591fa8c1411)
 
-
+---
 ## DNS Flow
 ![DNS-Workflow](https://github.com/user-attachments/assets/bc48320a-01d0-48ff-a7fe-6e2fc7e81197)
+### There are 4 DNS servers involved in loading a webpage:
+#### DNS Recursive Resolver 
+- The recursor can be thought of as a librarian who is asked to go find a particular book somewhere in a library. The DNS recursor is a server designed to receive queries from client machines through applications such as web browsers. Typically the recursor is then responsible for making additional requests in order to satisfy the client’s DNS query.
 
+#### Root Nameserver 
+- The root server is the first step in translating (resolving) human readable host names into IP addresses. It can be thought of like an index in a library that points to different racks of books - typically it serves as a reference to other more specific locations.
+
+#### TLD Nameserver 
+- The top level domain server (TLD) can be thought of as a specific rack of books in a library. This nameserver is the next step in the search for a specific IP address, and it hosts the last portion of a hostname (In example.com, the TLD server is “com”).
+
+#### Authoritative Nameserver 
+- This final nameserver can be thought of as a dictionary on a rack of books, in which a specific name can be translated into its definition. The authoritative nameserver is the last stop in the nameserver query. If the authoritative name server has access to the requested record, it will return the IP address for the requested hostname back to the DNS Recursor (the librarian) that made the initial request.
+---
+
+## How DNS works in Multiple Layers
+
+- When a client (such as a web browser) requests a website like **google.com**, it doesn't directly follow the OSI model or TCP/IP model in a strict sequence, but both models are relevant in understanding the steps that occur. The process involves multiple layers of the TCP/IP model (which is more commonly used in networking today) and OSI model concepts, though in practice, the two models are often used interchangeably to describe networking processes.
+
+**Here's how it works:**
+
+### 1. **DNS Resolution (Application Layer)**
+   - The client (your browser) first needs to resolve the domain name **google.com** into an IP address.
+   - This happens at the **Application Layer** in the TCP/IP model (and corresponds to the Application layer in the OSI model). The client sends a DNS query to a DNS resolver to get the IP address associated with **google.com**.
+
+### 2. **DNS Resolver (Transport Layer)**
+   - The DNS query is sent to the **DNS resolver** over **UDP** (User Datagram Protocol) or **TCP** (if needed, for example, when the response is large). The DNS query uses **port 53**.
+   - The DNS resolver looks up the requested domain name in the **DNS database**, returns the IP address of the server (e.g., **172.217.5.110**), and sends it back to the client.
+   - This process involves the **Transport Layer** (specifically, UDP or TCP) to manage communication between client and DNS resolver.
+
+### 3. **Establishing a Connection (Transport Layer)**
+   - Once the client has the IP address, it now needs to establish a connection to the **Google server** (e.g., **172.217.5.110**).
+   - This involves the **Transport Layer**, specifically the **TCP protocol** (which is the most common transport layer protocol for HTTP/HTTPS traffic).
+   - The client performs a **TCP handshake** (SYN, SYN-ACK, ACK) to establish a reliable connection with the Google server.
+
+### 4. **HTTP/HTTPS Request (Application Layer)**
+   - Once the connection is established, the client can now send the **HTTP or HTTPS request** to the Google server. This is done at the **Application Layer**.
+   - The HTTP request asks for the web page at **google.com**.
+
+### 5. **Data Transmission (Network Layer and below)**
+   - Now, the request and response data are sent across the network. This involves multiple layers:
+     - **Network Layer (IP Layer)**: This is where the IP address (e.g., **172.217.5.110**) comes into play. The request is routed from the client to the Google server through various intermediate devices like routers.
+     - **Data Link Layer**: This is where Ethernet or Wi-Fi comes into play. The client and server use the MAC addresses to physically communicate over the network.
+     - **Physical Layer**: This is where the actual physical transmission of data (e.g., electrical signals, light pulses, radio waves) happens.
+
+### 6. **Server Response (Application Layer)**
+   - The server (Google) processes the HTTP/HTTPS request and sends back a response (usually an HTML page) to the client. This response travels back through the network in the same manner, with each layer taking care of its own part of the process.
+   
+### 7. **Rendering the Webpage (Application Layer)**
+   - The browser (client) receives the server's response at the **Application Layer**, processes the HTML, and renders the webpage.
+
+---
+
+In summary, the process of visiting **google.com** follows the **TCP/IP model**, with interaction at multiple layers, especially the Application and Transport layers, and data passing through the Network and Data Link layers. The OSI model helps describe these same concepts but is more theoretical in nature and less commonly used for practical networking today.
+
+---
 
 # DNS Records
 - A Domain Name System Record is a set of instructions used to connect domain names with internet protocol (IP) addresses within DNS servers. DNS makes it possible for users to browse the internet with customizable domain names and URLs rather than complex numerical IP addresses.
