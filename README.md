@@ -3,6 +3,8 @@
 
 
 
+## DNS Flow
+![DNS-Workflow](https://github.com/user-attachments/assets/bc48320a-01d0-48ff-a7fe-6e2fc7e81197)
 
 
 # DNS Records
