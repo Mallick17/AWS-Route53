@@ -9,7 +9,7 @@
 ![image](https://github.com/user-attachments/assets/3c968f36-a3eb-40be-b6af-1591fa8c1411)
 
 ---
-## DNS Flow
+## DNS Lookup
 ![DNS-Workflow](https://github.com/user-attachments/assets/bc48320a-01d0-48ff-a7fe-6e2fc7e81197)
 ### There are 4 DNS servers involved in loading a webpage:
 #### DNS Recursive Resolver 
@@ -24,6 +24,22 @@
 #### Authoritative Nameserver 
 - This final nameserver can be thought of as a dictionary on a rack of books, in which a specific name can be translated into its definition. The authoritative nameserver is the last stop in the nameserver query. If the authoritative name server has access to the requested record, it will return the IP address for the requested hostname back to the DNS Recursor (the librarian) that made the initial request.
 ---
+
+### What are the steps in a DNS lookup?
+- Note: Often DNS lookup information will be cached either locally inside the querying computer or remotely in the DNS infrastructure. There are typically 8 steps in a DNS lookup. When DNS information is cached, steps are skipped from the DNS lookup process which makes it quicker. The example below outlines all 8 steps when nothing is cached.
+
+#### The 8 steps in a DNS lookup:
+1. A user types ‘example.com’ into a web browser and the query travels into the Internet and is received by a DNS recursive resolver.
+2. The resolver then queries a DNS root nameserver (.).
+3. The root server then responds to the resolver with the address of a Top Level Domain (TLD) DNS server (such as .com or .net), which stores the information for its domains. When searching for example.com, our request is pointed toward the .com TLD.
+4. The resolver then makes a request to the .com TLD.
+5. The TLD server then responds with the IP address of the domain’s nameserver, example.com.
+6. Lastly, the recursive resolver sends a query to the domain’s nameserver.
+7. The IP address for example.com is then returned to the resolver from the nameserver.
+8. The DNS resolver then responds to the web browser with the IP address of the domain requested initially.
+- Once the 8 steps of the DNS lookup have returned the IP address for example.com, the browser is able to make the request for the web page:
+9. The browser makes a HTTP request to the IP address.
+10. The server at that IP returns the webpage to be rendered in the browser (step 10).
 
 ## How DNS works in Multiple Layers
 
