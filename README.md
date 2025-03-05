@@ -1,6 +1,10 @@
 # DNS
+- DNS is the phonebook of the internet, connecting web browser with the websites.
+- DNS is a system that translates domain name like "example.com" into ip address like "192.68.1.1".
+- It is  a fundamental part of the internet, allowing users to access websites using human readable domain names instead of IP address.
 
-
+## How to read an URL
+![image](https://github.com/user-attachments/assets/3c968f36-a3eb-40be-b6af-1591fa8c1411)
 
 
 ## DNS Flow
