@@ -192,3 +192,69 @@ DNS management relies on the interconnectedness of DNS servers. Knowing how your
 - **TXT Records** store text-based information for security purposes, such as email verification and spam prevention.
 
 This version should match your requested abbreviation format and keep everything clear and simple.
+
+
+---
+
+# AWS Route53
+
+
+
+## Public DNS Query Logs — Scenario & Example
+
+**Scenario:**  
+You host the domain `mybusiness.com` publicly using AWS Route 53. Customers around the world visit your website by typing `www.mybusiness.com` into their browsers.
+
+- When a user’s device wants to access your website, it issues a DNS query for `www.mybusiness.com`.
+- This DNS query may pass through several DNS resolvers (ISP, public DNS providers like Google), and, when the resolver doesn’t have a cached response, it ultimately queries AWS Route 53’s public DNS servers.
+- You enable **Public DNS Query Logging** for your public hosted zone. Now, every DNS request reaching AWS for records in `mybusiness.com` is logged.
+
+**Example Log Entry:**
+```
+1.0 2025-08-22T10:35:21.123Z Z12341234 mybusiness.com A NOERROR UDP DFW3 8.8.8.8 -
+```
+- `mybusiness.com` DNS A record was queried
+- Queried at 2025-08-22T10:35:21Z
+- Responded successfully (NOERROR) via UDP
+- Served from AWS’s DFW3 edge location
+- Submitted by resolver with IP 8.8.8.8 (Google Public DNS)
+
+This lets you audit access patterns, detect spikes, and see what the world is querying for your domain.[1]
+
+***
+
+## Resolver Query Logs — Scenario & Example
+
+**Scenario:**  
+You have an application running on an EC2 instance inside your VPC. This app needs to connect to an internal service called `internal-api.corp.local`, which is defined in a Route 53 private hosted zone.
+
+- When the EC2 instance tries to resolve `internal-api.corp.local`, it sends a DNS request to the VPC’s built-in Amazon DNS Resolver (`169.254.169.253`).
+- With **Resolver Query Logging** enabled for the VPC, every DNS request made from this VPC (by EC2 or other resources) is logged — covering lookups for both AWS internal resources and internet domains (depending on your configuration).
+
+**Example Log Entry:**
+```
+{
+  "queryTimestamp": "2025-08-22T10:36:02.123Z",
+  "queryName": "internal-api.corp.local",
+  "queryType": "A",
+  "vpcId": "vpc-0ab12c3d4ef567890",
+  "querySourceIp": "10.0.2.10",
+  "responseCode": "NOERROR"
+}
+```
+- EC2 instance at 10.0.2.10 queried for the A record of `internal-api.corp.local`
+- Request happened within VPC vpc-0ab12c3d4ef567890
+- Query succeeded (NOERROR)
+
+This provides a trace of all DNS activity within your AWS network for security, activity auditing, troubleshooting, and compliance.
+
+***
+
+**Summary Table**
+
+| Log Type              | Example Scenario                                                      | Sample Log Info             |
+|-----------------------|-----------------------------------------------------------------------|-----------------------------|
+| Public DNS Query Logs | External user accesses `mybusiness.com` — request logs in Route 53    | Requested name, time, edge, source resolver IP |
+| Resolver Query Logs   | EC2 in VPC resolves `internal-api.corp.local` via VPC DNS             | Requested name, time, source EC2 IP, VPC, response |
+
+---
