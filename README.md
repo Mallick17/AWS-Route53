@@ -368,7 +368,7 @@ This provides a trace of all DNS activity within your AWS network for security, 
 ---
 
 # The Setup: A retail company with hybrid infrastructure
-
+## DNS resolution between on-premises and AWS resources.
 <img width="698" height="474" alt="image" src="https://github.com/user-attachments/assets/6b850bb1-0a63-4be8-ae64-b9d4c050e08a" />
 
 ### Say the company has:
