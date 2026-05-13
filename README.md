@@ -366,3 +366,90 @@ This provides a trace of all DNS activity within your AWS network for security, 
 | Resolver Query Logs   | EC2 in VPC resolves `internal-api.corp.local` via VPC DNS             | Requested name, time, source EC2 IP, VPC, response |
 
 ---
+
+# The Setup: A retail company with hybrid infrastructure
+## DNS resolution between on-premises and AWS resources.
+<img width="698" height="474" alt="image" src="https://github.com/user-attachments/assets/6b850bb1-0a63-4be8-ae64-b9d4c050e08a" />
+
+### Say the company has:
+- On-premises: internal employee tools at hr.corp.example.com, erp.corp.example.com hosted on 192.168.1.53 (their corporate DNS)
+- AWS VPC (10.0.0.0/16): microservices like payments.vpc.internal, RDS databases, EC2 instances
+- AWS Direct Connect: private connectivity between the two
+
+## Flow ① — Inbound Endpoint: On-prem querying AWS resources
+### Scenario: A developer on-premises runs nslookup payments.vpc.internal. That hostname lives in the AWS VPC. How does it resolve?
+- The problem without this: The corporate DNS server has no idea what payments.vpc.internal means. It doesn't know about your VPC's private namespace.
+- The solution:
+   - You create an Inbound Endpoint on Route 53 Resolver. AWS provisions two ENIs (Elastic Network Interfaces) in subnets of your VPC — for example, one gets IP 10.0.1.53 in subnet A and another gets 10.0.2.53 in subnet B (two AZs for redundancy).
+   - On your on-premises DNS server (e.g. Windows DNS or BIND), you configure a conditional forwarder that says: "For any query ending in .vpc.internal, don't try to resolve it yourself — forward it to 10.0.1.53."
+   - The query travels over Direct Connect to the inbound endpoint ENI at 10.0.1.53.
+   - Route 53 Resolver receives it and answers authoritatively — because payments.vpc.internal is a private hosted zone associated with your VPC.
+   - The IP answer travels back to the developer's machine.
+
+The on-prem machine never needs to know how AWS DNS works internally — it just fires at a known IP.
+
+## Flow ② — Outbound Endpoint: AWS querying on-prem resources
+### Scenario: An EC2 instance in your VPC needs to call erp.corp.example.com (SAP or Oracle ERP sitting on-premises). The EC2 instance runs curl http://erp.corp.example.com/api/v1/inventory.
+- The problem without this: By default, Route 53 Resolver only knows about AWS namespaces. corp.example.com is a private domain living on 192.168.1.53 on-premises. Route 53 has no route to it.
+- The solution:
+   - You create an Outbound Endpoint — again, two ENIs provisioned in your VPC subnets (e.g., 10.0.3.100 and 10.0.4.100).
+   - You create a Resolver Forwarding Rule that says: "For any DNS query ending in corp.example.com, forward it to 192.168.1.53 on-premises via the outbound endpoint."
+   - You associate that rule with your VPC.
+   - When the EC2 instance queries erp.corp.example.com:
+      - Route 53 Resolver checks its rules — the corp.example.com rule matches
+      - It routes the query out through the outbound endpoint ENI
+      - The query exits over Direct Connect to 192.168.1.53
+      - The corporate DNS resolves it and returns the private IP (e.g. 192.168.10.50)
+      - That answer comes back to the EC2 instance
+    
+### How to configure this (step-by-step)
+
+> Creating the inbound endpoint (AWS Console or CLI):
+```
+aws route53resolver create-resolver-endpoint \
+  --creator-request-id "inbound-ep-001" \
+  --security-group-ids "sg-0abc123def" \
+  --direction INBOUND \
+  --ip-addresses SubnetId=subnet-aaa,Ip=10.0.1.53 \
+               SubnetId=subnet-bbb,Ip=10.0.2.53
+```
+
+Then on your on-premises DNS (BIND9 example):
+```
+zone "vpc.internal" {
+    type forward;
+    forwarders { 10.0.1.53; 10.0.2.53; };
+};
+```
+
+> Creating the outbound endpoint + forwarding rule:
+```
+# 1. Create the outbound endpoint
+aws route53resolver create-resolver-endpoint \
+  --creator-request-id "outbound-ep-001" \
+  --security-group-ids "sg-0def456abc" \
+  --direction OUTBOUND \
+  --ip-addresses SubnetId=subnet-ccc SubnetId=subnet-ddd
+
+# 2. Create the forwarding rule pointing to on-prem DNS
+aws route53resolver create-resolver-rule \
+  --creator-request-id "rule-corp-001" \
+  --rule-type FORWARD \
+  --domain-name "corp.example.com" \
+  --resolver-endpoint-id "rslvr-out-abc123" \
+  --target-ips "Ip=192.168.1.53,Port=53"
+
+# 3. Associate the rule with your VPC
+aws route53resolver associate-resolver-rule \
+  --resolver-rule-id "rslvr-rr-xyz" \
+  --vpc-id "vpc-0123456789abcdef"
+```
+
+### Key concepts to lock in
+- **ENIs are the actual mechanism.** Both endpoints are just ENIs in your VPC subnets. Route 53 Resolver manages the DNS logic behind them — the ENIs are the "doors" DNS traffic walks through.
+- **Security groups matter.** Your inbound endpoint's security group must allow UDP/TCP port 53 inbound from your on-premises IP range. Your outbound endpoint's SG must allow port 53 outbound to your on-prem DNS IP.
+- **Forwarding rules are VPC-scoped.** A rule only applies to a VPC after you explicitly associate it. You can share rules across VPCs using Resource Access Manager (RAM).
+- **Route 53 Resolver has a built-in rule you can't delete** — called the "Internet Resolver" rule, type `RECURSIVE`. It handles all other queries (public internet DNS). Your custom `FORWARD` rules take priority over it for matching domains.
+- **Two endpoints = two use cases.** The exam question specifically combines both: one inbound endpoint satisfies "on-prem can query AWS," and one outbound endpoint with forwarding rules satisfies "AWS can query on-prem." Both are required to solve the full hybrid DNS scenario.
+
+---
