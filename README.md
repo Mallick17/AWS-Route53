@@ -366,3 +366,24 @@ This provides a trace of all DNS activity within your AWS network for security, 
 | Resolver Query Logs   | EC2 in VPC resolves `internal-api.corp.local` via VPC DNS             | Requested name, time, source EC2 IP, VPC, response |
 
 ---
+
+# The Setup: A retail company with hybrid infrastructure
+
+<img width="698" height="474" alt="image" src="https://github.com/user-attachments/assets/6b850bb1-0a63-4be8-ae64-b9d4c050e08a" />
+
+### Say the company has:
+- On-premises: internal employee tools at hr.corp.example.com, erp.corp.example.com hosted on 192.168.1.53 (their corporate DNS)
+- AWS VPC (10.0.0.0/16): microservices like payments.vpc.internal, RDS databases, EC2 instances
+- AWS Direct Connect: private connectivity between the two
+
+## Flow ① — Inbound Endpoint: On-prem querying AWS resources
+### Scenario: A developer on-premises runs nslookup payments.vpc.internal. That hostname lives in the AWS VPC. How does it resolve?
+- The problem without this: The corporate DNS server has no idea what payments.vpc.internal means. It doesn't know about your VPC's private namespace.
+- The solution:
+   - You create an Inbound Endpoint on Route 53 Resolver. AWS provisions two ENIs (Elastic Network Interfaces) in subnets of your VPC — for example, one gets IP 10.0.1.53 in subnet A and another gets 10.0.2.53 in subnet B (two AZs for redundancy).
+   - On your on-premises DNS server (e.g. Windows DNS or BIND), you configure a conditional forwarder that says: "For any query ending in .vpc.internal, don't try to resolve it yourself — forward it to 10.0.1.53."
+   - The query travels over Direct Connect to the inbound endpoint ENI at 10.0.1.53.
+   - Route 53 Resolver receives it and answers authoritatively — because payments.vpc.internal is a private hosted zone associated with your VPC.
+   - The IP answer travels back to the developer's machine.
+
+The on-prem machine never needs to know how AWS DNS works internally — it just fires at a known IP.
